@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m venv:*)",
+      "Bash(./venv/Scripts/pip install:*)",
+      "Bash(./venv/Scripts/python -c \"from app.config import settings; print\\(f''Config loaded: {settings.environment}''\\)\")",
+      "Bash(./venv/Scripts/python:*)",
+      "Bash(curl:*)",
+      "Bash(python -m json.tool:*)",
+      "Bash(pkill:*)",
+      "Bash(find:*)",
+      "Bash(netstat:*)",
+      "Bash(ss:*)",
+      "Bash(powershell -c:*)",
+      "Bash(railway:*)",
+      "Bash(node:*)",
+      "Bash(npm --version:*)",
+      "Bash(python -c \"\nimport requests, json\n\nBASE = ''https://reasonable-balance-production.up.railway.app''\nHEADERS = {''x-api-key'': ''hackathon-secret-key-2026'', ''Content-Type'': ''application/json''}\n\n# Simulate exact GUVI format: integer timestamps\npayload = {\n    ''sessionId'': ''4b31365e-test-exact-guvi-format'',\n    ''message'': {\n        ''sender'': ''scammer'',\n        ''text'': ''URGENT: Your SBI account has been compromised. Share your OTP now.'',\n        ''timestamp'': 1770025292801\n    },\n    ''conversationHistory'': [\n        {\n            ''sender'': ''scammer'',\n            ''text'': ''Your account is at risk.'',\n            ''timestamp'': 1770025268699\n        },\n        {\n            ''sender'': ''user'',\n            ''text'': ''Tell me more.'',\n            ''timestamp'': 1770025269327\n        }\n    ],\n    ''metadata'': {''channel'': ''SMS'', ''language'': ''English'', ''locale'': ''IN''}\n}\n\nprint\\(''=== Testing /api/message with exact GUVI format \\(int timestamps\\) ===''\\)\nr = requests.post\\(BASE + ''/api/message'', json=payload, headers=HEADERS, timeout=60\\)\nprint\\(f''Status: {r.status_code}''\\)\nprint\\(f''Response: {json.dumps\\(r.json\\(\\), indent=2\\)}''\\)\n\")",
+      "Bash(python:*)",
+      "WebSearch",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:github.com)"
+    ]
+  }
+}

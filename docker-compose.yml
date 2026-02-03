@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  shieldcall-api:
+    build: .
+    container_name: shieldcall-honeypot
+    ports:
+      - "${PORT:-8000}:8000"
+    environment:
+      - API_KEY=${API_KEY:-hackathon-secret-key-2026}
+      - PORT=${PORT:-8000}
+      - HOST=0.0.0.0
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DEBUG=${DEBUG:-false}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - USE_HYBRID_AI=${USE_HYBRID_AI:-true}
+      - SCAM_CONFIDENCE_THRESHOLD=${SCAM_CONFIDENCE_THRESHOLD:-0.65}
+      - GUVI_CALLBACK_URL=${GUVI_CALLBACK_URL:-https://hackathon.guvi.in/api/updateHoneyPotFinalResult}
+    env_file:
+      - .env
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  default:
+    name: shieldcall-network

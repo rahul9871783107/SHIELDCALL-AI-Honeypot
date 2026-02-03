@@ -1,0 +1,133 @@
+"""
+Helper Utility Functions
+Common functions used across the application.
+"""
+import re
+from typing import List, Dict
+from datetime import datetime
+from app.config import INTELLIGENCE_PATTERNS
+
+
+def extract_patterns(text: str, pattern: str) -> List[str]:
+    """
+    Extract all matches of a regex pattern from text.
+
+    Args:
+        text: Input text to search
+        pattern: Regex pattern to match
+
+    Returns:
+        List of unique matches
+    """
+    matches = re.findall(pattern, text, re.IGNORECASE)
+    # Handle tuples from groups (like phone numbers)
+    if matches and isinstance(matches[0], tuple):
+        matches = [''.join(match) for match in matches]
+    return list(set(matches))
+
+
+def extract_upi_ids(text: str) -> List[str]:
+    """Extract UPI IDs from text."""
+    pattern = INTELLIGENCE_PATTERNS["upi_id"]
+    upi_ids = extract_patterns(text, pattern)
+    # Filter out common false positives
+    return [upi for upi in upi_ids if '@' in upi and not upi.endswith('.com')]
+
+
+def extract_phone_numbers(text: str) -> List[str]:
+    """Extract phone numbers from text."""
+    pattern = INTELLIGENCE_PATTERNS["phone_number"]
+    return extract_patterns(text, pattern)
+
+
+def extract_bank_accounts(text: str) -> List[str]:
+    """Extract potential bank account numbers from text."""
+    pattern = INTELLIGENCE_PATTERNS["bank_account"]
+    accounts = extract_patterns(text, pattern)
+    # Filter: bank accounts are typically 9-18 digits
+    return [acc for acc in accounts if 9 <= len(acc) <= 18]
+
+
+def extract_urls(text: str) -> List[str]:
+    """Extract URLs from text."""
+    pattern = INTELLIGENCE_PATTERNS["url"]
+    return extract_patterns(text, pattern)
+
+
+def is_suspicious_url(url: str) -> bool:
+    """
+    Check if a URL looks suspicious/phishing.
+
+    Args:
+        url: URL to check
+
+    Returns:
+        True if URL appears suspicious
+    """
+    suspicious_indicators = [
+        'bit.ly', 'tinyurl', 'short.link',  # URL shorteners
+        'secure-bank', 'verify-account', 'update-kyc',  # Fake banking
+        '.tk', '.ml', '.ga', '.cf',  # Suspicious TLDs
+        'login', 'signin', 'verify', 'update',  # Phishing keywords
+    ]
+
+    url_lower = url.lower()
+    return any(indicator in url_lower for indicator in suspicious_indicators)
+
+
+def count_scam_keywords(text: str, keyword_dict: Dict[str, List[str]]) -> Dict[str, int]:
+    """
+    Count occurrences of scam keywords by category.
+
+    Args:
+        text: Text to analyze
+        keyword_dict: Dictionary of keyword categories
+
+    Returns:
+        Dictionary with counts per category
+    """
+    text_lower = text.lower()
+    counts = {}
+
+    for category, keywords in keyword_dict.items():
+        count = sum(1 for keyword in keywords if keyword in text_lower)
+        counts[category] = count
+
+    return counts
+
+
+def get_detected_keywords(text: str, keyword_dict: Dict[str, List[str]]) -> List[str]:
+    """
+    Get list of detected scam keywords from text.
+
+    Args:
+        text: Text to analyze
+        keyword_dict: Dictionary of keyword categories
+
+    Returns:
+        List of detected keywords
+    """
+    text_lower = text.lower()
+    detected = set()
+
+    for category, keywords in keyword_dict.items():
+        for keyword in keywords:
+            if keyword in text_lower:
+                detected.add(keyword)
+
+    return list(detected)
+
+
+def format_timestamp(dt: datetime = None) -> str:
+    """
+    Format datetime to ISO-8601 string.
+
+    Args:
+        dt: Datetime object (uses current time if None)
+
+    Returns:
+        ISO-8601 formatted timestamp
+    """
+    if dt is None:
+        dt = datetime.utcnow()
+    return dt.strftime("%Y-%m-%dT%H:%M:%SZ")

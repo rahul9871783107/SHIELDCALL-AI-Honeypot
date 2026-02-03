@@ -223,7 +223,7 @@ MIT License - See [LICENSE](LICENSE) for details
 
 **Rahul**
 India AI Impact Buildathon 2026
-Contact: rahul9871783107@gmail.com
+Contact: rrahul18338@@gmail.com
 
 ## 🙏 Acknowledgments
 

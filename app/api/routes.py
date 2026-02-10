@@ -308,6 +308,7 @@ async def honeypot_endpoint(
 
         # Session + Intelligence
         session = session_manager.get_or_create_session(session_id)
+        session.message_count += 1
         session.intelligence_extractor.extract_from_message(scam_text)
         intelligence_summary = session.intelligence_extractor.get_summary()
 

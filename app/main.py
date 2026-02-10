@@ -17,8 +17,8 @@ app = FastAPI(
     title="SHIELDCALL Honeypot API",
     description="AI-Powered Scam Detection with 3-Layer Hybrid Architecture",
     version="1.0.0",
-    docs_url="/docs" if settings.debug else None,
-    redoc_url="/redoc" if settings.debug else None,
+    docs_url="/docs",
+    redoc_url="/redoc",
 )
 
 
@@ -56,11 +56,18 @@ app.include_router(router)
 # Handle validation errors gracefully — return {status, reply} format
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    """Return honeypot-formatted response even for validation errors."""
+    """Return honeypot-formatted response for honeypot endpoint, proper 422 for others."""
     logger.warning(f"Validation error on {request.url.path}: {exc.errors()}")
+    # Honeypot endpoint must never crash — return graceful reply
+    if "/api/honeypot" in request.url.path:
+        return JSONResponse(
+            status_code=200,
+            content={"status": "success", "reply": "Hello. How can I help you?"}
+        )
+    # Standard validation error for other endpoints
     return JSONResponse(
-        status_code=200,
-        content={"status": "success", "reply": "Hello. How can I help you?"}
+        status_code=422,
+        content={"detail": exc.errors()}
     )
 
 
@@ -104,7 +111,7 @@ async def root():
             "main": "POST /api/message",
             "health": "GET /health",
             "stats": "GET /api/stats",
-            "docs": "/docs" if settings.debug else "disabled"
+            "docs": "/docs"
         },
         "team": "ShieldCall AI",
         "tagline": "Protecting India from scams with AI"
@@ -113,8 +120,14 @@ async def root():
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
-    """Global exception handler."""
-    print(f"Error: {str(exc)}")
+    """Global exception handler — never crash, always return valid JSON."""
+    logger.error(f"Unhandled error on {request.url.path}: {exc}", exc_info=True)
+    # Return honeypot format for honeypot endpoint so GUVI never sees a 500
+    if "/api/honeypot" in str(request.url.path):
+        return JSONResponse(
+            status_code=200,
+            content={"status": "success", "reply": "I'm having trouble understanding. Could you say that again?"}
+        )
     return JSONResponse(
         status_code=500,
         content={

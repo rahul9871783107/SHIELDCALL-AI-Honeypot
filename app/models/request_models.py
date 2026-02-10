@@ -6,6 +6,7 @@ Flexible enough to accept both GUVI's test format and our full format.
 from pydantic import BaseModel, Field, model_validator
 from typing import List, Optional, Union, Any
 from datetime import datetime, timezone
+import uuid
 
 
 class Message(BaseModel):
@@ -127,8 +128,8 @@ class HackathonRequest(BaseModel):
     GUVI hackathon request format - flexible input.
     Accepts both string and object message formats.
     """
-    sessionId: str = Field(..., description="Unique session identifier")
-    message: Any = Field(..., description="Message text or object")
+    sessionId: Optional[str] = Field(default=None, description="Unique session identifier")
+    message: Any = Field(default=None, description="Message text or object")
     conversationHistory: Optional[List[Any]] = Field(
         default_factory=list,
         description="Previous conversation messages"
@@ -144,7 +145,7 @@ class HackathonRequest(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def normalize_hackathon_input(cls, data: Any) -> Any:
-        """Accept snake_case aliases and normalize input."""
+        """Accept snake_case aliases, normalize input, auto-generate missing fields."""
         if not isinstance(data, dict):
             return data
         # Accept session_id as alias for sessionId
@@ -153,6 +154,13 @@ class HackathonRequest(BaseModel):
         # Accept conversation_history as alias
         if "conversation_history" in data and "conversationHistory" not in data:
             data["conversationHistory"] = data.pop("conversation_history")
+        # Auto-generate sessionId if missing or empty
+        if not data.get("sessionId"):
+            data["sessionId"] = f"auto-{uuid.uuid4().hex[:12]}"
+        # Ensure conversationHistory is a list
+        ch = data.get("conversationHistory")
+        if ch is not None and not isinstance(ch, list):
+            data["conversationHistory"] = []
         return data
 
     def get_message_text(self) -> str:

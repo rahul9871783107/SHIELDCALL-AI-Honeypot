@@ -296,46 +296,51 @@ async def honeypot_endpoint(
     if body is None:
         return HackathonResponse(reply="Hello. How can I help you?")
 
-    # POST with body: Full pipeline
-    scam_text = body.get_message_text()
+    try:
+        # POST with body: Full pipeline
+        scam_text = body.get_message_text()
 
-    if not scam_text:
-        return HackathonResponse(reply="I didn't catch that. Could you repeat?")
+        if not scam_text:
+            return HackathonResponse(reply="I didn't catch that. Could you repeat?")
 
-    session_id = body.sessionId
-    conversation_history = body.conversationHistory or []
+        session_id = body.sessionId
+        conversation_history = body.conversationHistory or []
 
-    # Session + Intelligence
-    session = session_manager.get_or_create_session(session_id)
-    session.intelligence_extractor.extract_from_message(scam_text)
-    intelligence_summary = session.intelligence_extractor.get_summary()
+        # Session + Intelligence
+        session = session_manager.get_or_create_session(session_id)
+        session.intelligence_extractor.extract_from_message(scam_text)
+        intelligence_summary = session.intelligence_extractor.get_summary()
 
-    # Gemini screening
-    risk_assessment = await gemini_service.quick_screen(scam_text)
-    risk_level = risk_assessment["risk_level"]
-    confidence = risk_assessment["confidence"]
-    scam_detected = risk_level in ["medium", "high"]
+        # Gemini screening
+        risk_assessment = await gemini_service.quick_screen(scam_text)
+        risk_level = risk_assessment["risk_level"]
+        confidence = risk_assessment["confidence"]
+        scam_detected = risk_level in ["medium", "high"]
 
-    session.risk_level = risk_level
-    session.scam_confidence = confidence
+        session.risk_level = risk_level
+        session.scam_confidence = confidence
 
-    if scam_detected and not session.scam_detected:
-        session_manager.mark_scam_detected(session_id, confidence, risk_assessment["reasoning"])
+        if scam_detected and not session.scam_detected:
+            session_manager.mark_scam_detected(session_id, confidence, risk_assessment["reasoning"])
 
-    # Generate response
-    if risk_assessment["should_deep_analyze"]:
-        logger.info(f"Layer 3: Claude for {risk_level.upper()} risk")
-        if session.persona_key is None:
-            session.persona_key = ai_agent.initialize_conversation()
-        reply = ai_agent.generate_response(scam_text, conversation_history, intelligence_summary)
-    else:
-        reply = "I see, that sounds interesting. Can you tell me more about this?"
+        # Generate response
+        if risk_assessment["should_deep_analyze"]:
+            logger.info(f"Layer 3: Claude for {risk_level.upper()} risk")
+            if session.persona_key is None:
+                session.persona_key = ai_agent.initialize_conversation()
+            reply = ai_agent.generate_response(scam_text, conversation_history, intelligence_summary)
+        else:
+            reply = "I see, that sounds interesting. Can you tell me more about this?"
 
-    # Callback check
-    if session_manager.should_send_callback(session_id):
-        logger.info(f"Triggering callback for {session_id}")
-        cb = await callback_service.send_final_result(session)
-        if cb["success"]:
-            session_manager.mark_callback_sent(session_id)
+        # Callback check
+        if session_manager.should_send_callback(session_id):
+            logger.info(f"Triggering callback for {session_id}")
+            cb = await callback_service.send_final_result(session)
+            if cb["success"]:
+                session_manager.mark_callback_sent(session_id)
 
-    return HackathonResponse(reply=reply)
+        return HackathonResponse(reply=reply)
+
+    except Exception as e:
+        logger.error(f"Honeypot endpoint error: {e}", exc_info=True)
+        return HackathonResponse(reply="I'm having trouble understanding. Could you say that again?")

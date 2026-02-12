@@ -273,13 +273,12 @@ async def cleanup_sessions(
 @router.api_route(
     "/api/honeypot",
     methods=["GET", "POST", "HEAD"],
-    response_model=HackathonResponse,
 )
 async def honeypot_endpoint(
     request_obj: Request,
     api_key: str = Depends(verify_api_key),
     body: Optional[HackathonRequest] = Body(None),
-) -> HackathonResponse:
+):
     """
     Main honeypot endpoint for GUVI tester.
     Uses FastAPI built-in validation: auth via Depends, body via Pydantic.
@@ -290,18 +289,18 @@ async def honeypot_endpoint(
 
     # GET/HEAD: GUVI checks endpoint is alive and secured
     if method in ("GET", "HEAD"):
-        return HackathonResponse(reply="Honeypot API is active")
+        return {"status": "success", "reply": "Honeypot API is active"}
 
     # POST with no body: GUVI checks graceful handling
     if body is None:
-        return HackathonResponse(reply="Hello. How can I help you?")
+        return {"status": "success", "reply": "Hello. How can I help you?"}
 
     try:
         # POST with body: Full pipeline
         scam_text = body.get_message_text()
 
         if not scam_text:
-            return HackathonResponse(reply="I didn't catch that. Could you repeat?")
+            return {"status": "success", "reply": "I didn't catch that. Could you repeat?"}
 
         session_id = body.sessionId
         conversation_history = body.conversationHistory or []
@@ -309,6 +308,20 @@ async def honeypot_endpoint(
         # Session + Intelligence
         session = session_manager.get_or_create_session(session_id)
         session.message_count += 1
+
+        # Extract intelligence from conversation history (catches UPI/phone from earlier turns)
+        if conversation_history and session.message_count <= 2:
+            for hist_msg in conversation_history:
+                hist_text = ""
+                if isinstance(hist_msg, dict):
+                    if hist_msg.get("sender", "scammer") != "user":
+                        hist_text = hist_msg.get("text", hist_msg.get("content", ""))
+                elif hasattr(hist_msg, "sender") and hist_msg.sender != "user":
+                    hist_text = hist_msg.text if hasattr(hist_msg, "text") else ""
+                if hist_text:
+                    session.intelligence_extractor.extract_from_message(hist_text)
+
+        # Extract from current message
         session.intelligence_extractor.extract_from_message(scam_text)
         intelligence_summary = session.intelligence_extractor.get_summary()
 
@@ -325,8 +338,10 @@ async def honeypot_endpoint(
             session_manager.mark_scam_detected(session_id, confidence, risk_assessment["reasoning"])
 
         # Generate response
-        if risk_assessment["should_deep_analyze"]:
-            logger.info(f"Layer 3: Claude for {risk_level.upper()} risk")
+        # Route to Claude if: Gemini says deep analyze OR session already flagged as scam
+        use_claude = risk_assessment["should_deep_analyze"] or session.scam_detected
+        if use_claude:
+            logger.info(f"Layer 3: Claude for {risk_level.upper()} risk (session_scam={session.scam_detected})")
             if session.persona_key is None:
                 session.persona_key = ai_agent.initialize_conversation()
             reply = ai_agent.generate_response(scam_text, conversation_history, intelligence_summary)
@@ -340,8 +355,23 @@ async def honeypot_endpoint(
             if cb["success"]:
                 session_manager.mark_callback_sent(session_id)
 
-        return HackathonResponse(reply=reply)
+        # Build response with intelligence for GUVI
+        intel = session.intelligence
+        return {
+            "status": "success",
+            "reply": reply,
+            "scam_detected": session.scam_detected,
+            "confidence": session.scam_confidence,
+            "intelligence": {
+                "upiIds": list(intel.upiIds),
+                "phoneNumbers": [p for p in intel.phoneNumbers if p],
+                "bankAccounts": list(intel.bankAccounts),
+                "phishingLinks": list(intel.phishingLinks),
+                "suspiciousKeywords": list(intel.suspiciousKeywords)[:10],
+            },
+            "extractedIntelligence": intel.to_dict(),
+        }
 
     except Exception as e:
         logger.error(f"Honeypot endpoint error: {e}", exc_info=True)
-        return HackathonResponse(reply="I'm having trouble understanding. Could you say that again?")
+        return {"status": "success", "reply": "I'm having trouble understanding. Could you say that again?"}

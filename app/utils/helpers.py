@@ -30,22 +30,44 @@ def extract_upi_ids(text: str) -> List[str]:
     """Extract UPI IDs from text."""
     pattern = INTELLIGENCE_PATTERNS["upi_id"]
     upi_ids = extract_patterns(text, pattern)
-    # Filter out common false positives
-    return [upi for upi in upi_ids if '@' in upi and not upi.endswith('.com')]
+    # Clean and filter
+    cleaned = []
+    for upi in upi_ids:
+        upi = upi.rstrip('.')  # Strip trailing periods from sentence endings
+        if '@' in upi and not upi.endswith('.com') and upi not in cleaned:
+            cleaned.append(upi)
+    return cleaned
 
 
 def extract_phone_numbers(text: str) -> List[str]:
     """Extract phone numbers from text."""
     pattern = INTELLIGENCE_PATTERNS["phone_number"]
-    return extract_patterns(text, pattern)
+    numbers = extract_patterns(text, pattern)
+    # Normalize: strip internal spaces/dashes for clean output
+    normalized = []
+    for num in numbers:
+        clean = re.sub(r'[\s\-]', '', num)
+        if clean not in normalized:
+            normalized.append(clean)
+    return normalized
 
 
 def extract_bank_accounts(text: str) -> List[str]:
     """Extract potential bank account numbers from text."""
     pattern = INTELLIGENCE_PATTERNS["bank_account"]
     accounts = extract_patterns(text, pattern)
-    # Filter: bank accounts are typically 9-18 digits
-    return [acc for acc in accounts if 9 <= len(acc) <= 18]
+    # Get phone digits to filter false positives (e.g. 9876543210 from +91-9876543210)
+    phone_pattern = INTELLIGENCE_PATTERNS["phone_number"]
+    phone_matches = re.findall(phone_pattern, text, re.IGNORECASE)
+    phone_digit_strings = []
+    for p in phone_matches:
+        if isinstance(p, tuple):
+            p = ''.join(p)
+        phone_digit_strings.append(re.sub(r'[^\d]', '', p))
+    # Filter: 9-18 digits AND not a substring of any phone number's digits
+    def is_phone_fragment(acc):
+        return any(acc in pd for pd in phone_digit_strings)
+    return [acc for acc in accounts if 9 <= len(acc) <= 18 and not is_phone_fragment(acc)]
 
 
 def extract_urls(text: str) -> List[str]:

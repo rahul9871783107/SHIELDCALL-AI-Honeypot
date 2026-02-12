@@ -75,8 +75,8 @@ SCAM_KEYWORDS = {
 
 # Regex patterns for intelligence extraction
 INTELLIGENCE_PATTERNS = {
-    "upi_id": r"[\w.-]+@[\w.-]+",
-    "phone_number": r"(?:\+91[\s-]?)?[6-9]\d{9}",
+    "upi_id": r"[\w.-]+@[a-zA-Z][\w.-]*",
+    "phone_number": r"(?:\+91[\s\-]*)?[6-9]\d{4}[\s\-]?\d{5}",
     "bank_account": r"\b\d{9,18}\b",
     "url": r"https?://[^\s]+",
     "email": r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}",

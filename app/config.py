@@ -38,7 +38,7 @@ class Settings(BaseSettings):
 
     # AI Settings
     ai_model: str = Field(default="claude-sonnet-4-20250514", env="AI_MODEL")
-    ai_max_tokens: int = Field(default=1000, env="AI_MAX_TOKENS")
+    ai_max_tokens: int = Field(default=300, env="AI_MAX_TOKENS")
     ai_temperature: float = Field(default=0.7, env="AI_TEMPERATURE")
 
     # Hybrid AI Settings

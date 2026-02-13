@@ -44,6 +44,7 @@ class ConversationSession:
     # Callback tracking
     callback_sent: bool = False
     callback_timestamp: Optional[datetime] = None
+    callback_intel_count: int = 0
 
     def add_message(self, message: Message):
         """Add a message to the session."""
@@ -147,15 +148,18 @@ class SessionManager:
     def mark_callback_sent(self, session_id: str):
         """
         Mark that callback has been sent for this session.
-
-        Args:
-            session_id: Session ID
+        Records intel count so we know when to re-send with better data.
         """
         session = self.get_session(session_id)
         if session:
             session.callback_sent = True
             session.callback_timestamp = datetime.utcnow()
-            logger.info(f"Callback marked as sent for session: {session_id}")
+            session.callback_intel_count = session.intelligence.intelligence_count()
+            logger.info(
+                f"Callback sent for {session_id} "
+                f"(intel_count={session.callback_intel_count}, "
+                f"turns={session.message_count})"
+            )
 
     def should_send_callback(self, session_id: str) -> bool:
         """
@@ -163,34 +167,38 @@ class SessionManager:
 
         Criteria:
         1. Scam has been detected
-        2. Callback not already sent
-        3. Either:
+        2. Either first send or we have NEW intelligence since last send
+        3. Minimum 5 turns before first callback (prevents premature firing)
+        4. Either:
            - Intelligence count >= MIN_INTELLIGENCE_FOR_CALLBACK
            - OR conversation turns >= AUTO_CALLBACK_AFTER_TURNS
-
-        Args:
-            session_id: Session to check
-
-        Returns:
-            True if callback should be sent
         """
         session = self.get_session(session_id)
         if not session:
-            return False
-
-        # Already sent callback
-        if session.callback_sent:
             return False
 
         # Must be detected as scam
         if not session.scam_detected:
             return False
 
-        # Check intelligence threshold
         intelligence_count = session.intelligence.intelligence_count()
-        has_enough_intel = intelligence_count >= settings.min_intelligence_for_callback
 
-        # Check conversation length
+        # If callback already sent, only re-send if we have MORE intelligence
+        if session.callback_sent:
+            if intelligence_count <= session.callback_intel_count:
+                return False
+            logger.info(
+                f"Re-sending callback for {session_id}: "
+                f"intel {session.callback_intel_count} -> {intelligence_count}"
+            )
+            return True
+
+        # First callback: require minimum turns to avoid premature firing
+        MIN_TURNS_FOR_FIRST_CALLBACK = 5
+        if session.message_count < MIN_TURNS_FOR_FIRST_CALLBACK:
+            return False
+
+        has_enough_intel = intelligence_count >= settings.min_intelligence_for_callback
         enough_turns = session.message_count >= settings.auto_callback_after_turns
 
         should_send = has_enough_intel or enough_turns

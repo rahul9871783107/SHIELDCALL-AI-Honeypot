@@ -309,8 +309,8 @@ async def honeypot_endpoint(
         session = session_manager.get_or_create_session(session_id)
         session.message_count += 1
 
-        # Extract intelligence from conversation history (catches UPI/phone from earlier turns)
-        if conversation_history and session.message_count <= 2:
+        # Extract intelligence from ALL conversation history (dedup handles repeats)
+        if conversation_history:
             for hist_msg in conversation_history:
                 hist_text = ""
                 if isinstance(hist_msg, dict):

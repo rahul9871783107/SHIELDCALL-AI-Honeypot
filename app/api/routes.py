@@ -355,21 +355,67 @@ async def honeypot_endpoint(
             if cb["success"]:
                 session_manager.mark_callback_sent(session_id)
 
+        # Calculate engagement metrics
+        total_messages = len(conversation_history) + 1  # history + current
+        engagement_duration = 0
+        if conversation_history and len(conversation_history) >= 2:
+            try:
+                timestamps = []
+                for m in conversation_history:
+                    ts = m.get("timestamp") if isinstance(m, dict) else getattr(m, "timestamp", None)
+                    if ts is not None:
+                        if isinstance(ts, (int, float)) and ts > 1_000_000_000_000:
+                            timestamps.append(ts / 1000)  # epoch ms -> s
+                        elif isinstance(ts, (int, float)):
+                            timestamps.append(float(ts))
+                if timestamps:
+                    engagement_duration = int(max(timestamps) - min(timestamps))
+            except Exception:
+                engagement_duration = 0
+
+        # Generate agent notes
+        agent_notes = (
+            f"Scam detected with {session.scam_confidence:.0%} confidence. "
+            f"Risk level: {session.risk_level.upper()}. "
+        )
+        if risk_assessment.get("reasoning"):
+            agent_notes += f"Reasoning: {risk_assessment['reasoning']}. "
+        if session.persona_key:
+            agent_notes += f"Engaged using '{session.persona_key}' persona. "
+        intel_count = session.intelligence.intelligence_count()
+        if intel_count > 0:
+            agent_notes += f"Extracted {intel_count} intelligence items. "
+        agent_notes += f"Total messages exchanged: {total_messages}."
+
         # Build response with intelligence for GUVI
         intel = session.intelligence
         return {
             "status": "success",
             "reply": reply,
+            "scamDetected": session.scam_detected,
             "scam_detected": session.scam_detected,
             "confidence": session.scam_confidence,
+            "extractedIntelligence": {
+                "phoneNumbers": [p for p in intel.phoneNumbers if p],
+                "bankAccounts": list(intel.bankAccounts),
+                "upiIds": list(intel.upiIds),
+                "phishingLinks": list(intel.phishingLinks),
+                "emailAddresses": list(intel.emailAddresses),
+                "suspiciousKeywords": list(intel.suspiciousKeywords)[:10],
+            },
+            "engagementMetrics": {
+                "totalMessagesExchanged": total_messages,
+                "engagementDurationSeconds": engagement_duration,
+            },
+            "agentNotes": agent_notes,
             "intelligence": {
                 "upiIds": list(intel.upiIds),
                 "phoneNumbers": [p for p in intel.phoneNumbers if p],
                 "bankAccounts": list(intel.bankAccounts),
                 "phishingLinks": list(intel.phishingLinks),
+                "emailAddresses": list(intel.emailAddresses),
                 "suspiciousKeywords": list(intel.suspiciousKeywords)[:10],
             },
-            "extractedIntelligence": intel.to_dict(),
         }
 
     except Exception as e:

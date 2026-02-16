@@ -73,6 +73,14 @@ def extract_bank_accounts(text: str) -> List[str]:
 def extract_urls(text: str) -> List[str]:
     """Extract URLs from text."""
     pattern = INTELLIGENCE_PATTERNS["url"]
+    urls = extract_patterns(text, pattern)
+    # Strip trailing punctuation that gets caught by regex
+    return [url.rstrip('.,;:!?)') for url in urls]
+
+
+def extract_emails(text: str) -> List[str]:
+    """Extract email addresses from text."""
+    pattern = INTELLIGENCE_PATTERNS["email"]
     return extract_patterns(text, pattern)
 
 

@@ -9,6 +9,7 @@ from app.utils.helpers import (
     extract_phone_numbers,
     extract_bank_accounts,
     extract_urls,
+    extract_emails,
     is_suspicious_url,
     get_detected_keywords
 )
@@ -65,6 +66,12 @@ class IntelligenceExtractor:
                 logger.info(f"Found {len(urls)} URL(s): {urls}")
                 self.intelligence.phishingLinks.extend(urls)
 
+        # Extract email addresses
+        emails = extract_emails(text)
+        if emails:
+            logger.info(f"Found {len(emails)} email(s): {emails}")
+            self.intelligence.emailAddresses.extend(emails)
+
         # Extract scam keywords
         keywords = get_detected_keywords(text, SCAM_KEYWORDS)
         if keywords:
@@ -76,6 +83,7 @@ class IntelligenceExtractor:
         self.intelligence.phoneNumbers = list(set(self.intelligence.phoneNumbers))
         self.intelligence.bankAccounts = list(set(self.intelligence.bankAccounts))
         self.intelligence.phishingLinks = list(set(self.intelligence.phishingLinks))
+        self.intelligence.emailAddresses = list(set(self.intelligence.emailAddresses))
         self.intelligence.suspiciousKeywords = list(set(self.intelligence.suspiciousKeywords))
 
         return self.intelligence

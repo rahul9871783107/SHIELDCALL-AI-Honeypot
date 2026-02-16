@@ -26,6 +26,7 @@ class ExtractedIntelligence(BaseModel):
     upiIds: List[str] = Field(default_factory=list)
     phishingLinks: List[str] = Field(default_factory=list)
     phoneNumbers: List[str] = Field(default_factory=list)
+    emailAddresses: List[str] = Field(default_factory=list)
     suspiciousKeywords: List[str] = Field(default_factory=list)
 
     def to_dict(self) -> Dict[str, List[str]]:
@@ -35,6 +36,7 @@ class ExtractedIntelligence(BaseModel):
             "upiIds": self.upiIds,
             "phishingLinks": self.phishingLinks,
             "phoneNumbers": self.phoneNumbers,
+            "emailAddresses": self.emailAddresses,
             "suspiciousKeywords": self.suspiciousKeywords,
         }
 
@@ -44,7 +46,8 @@ class ExtractedIntelligence(BaseModel):
             self.bankAccounts or
             self.upiIds or
             self.phishingLinks or
-            self.phoneNumbers
+            self.phoneNumbers or
+            self.emailAddresses
         )
 
     def intelligence_count(self) -> int:
@@ -53,7 +56,8 @@ class ExtractedIntelligence(BaseModel):
             len(self.bankAccounts) +
             len(self.upiIds) +
             len(self.phishingLinks) +
-            len(self.phoneNumbers)
+            len(self.phoneNumbers) +
+            len(self.emailAddresses)
         )
 
 

@@ -194,7 +194,7 @@ class SessionManager:
             return True
 
         # First callback: require minimum turns to avoid premature firing
-        MIN_TURNS_FOR_FIRST_CALLBACK = 5
+        MIN_TURNS_FOR_FIRST_CALLBACK = 3
         if session.message_count < MIN_TURNS_FOR_FIRST_CALLBACK:
             return False
 

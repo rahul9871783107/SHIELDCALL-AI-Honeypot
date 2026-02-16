@@ -51,7 +51,7 @@ class Settings(BaseSettings):
 
     # Intelligence Extraction
     auto_callback_after_turns: int = Field(default=15, env="AUTO_CALLBACK_AFTER_TURNS")
-    min_intelligence_for_callback: int = Field(default=2, env="MIN_INTELLIGENCE_FOR_CALLBACK")
+    min_intelligence_for_callback: int = Field(default=1, env="MIN_INTELLIGENCE_FOR_CALLBACK")
 
     class Config:
         env_file = ".env"

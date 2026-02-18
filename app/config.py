@@ -47,7 +47,7 @@ class Settings(BaseSettings):
     gemini_model: str = Field(default="gemini-2.0-flash", env="GEMINI_MODEL")
     gemini_max_tokens: int = Field(default=500, env="GEMINI_MAX_TOKENS")
     gemini_temperature: float = Field(default=0.3, env="GEMINI_TEMPERATURE")
-    claude_model: str = Field(default="claude-sonnet-4-20250514", env="CLAUDE_MODEL")
+    claude_model: str = Field(default="claude-3-5-haiku-20241022", env="CLAUDE_MODEL")
 
     # Intelligence Extraction
     auto_callback_after_turns: int = Field(default=15, env="AUTO_CALLBACK_AFTER_TURNS")

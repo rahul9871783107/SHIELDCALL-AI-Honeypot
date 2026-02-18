@@ -222,6 +222,12 @@ Continue responding naturally as your assigned persona. This is NOT a roleplay â
             "Haan ji, ye toh bahut concerning hai. Mujhe kya karna chahiye?",
             "Sir, main confused ho gaya hun. Please thoda clearly bataiye?",
             "Ji, please mujhe step by step bataiye kya karna hai?",
+            "Oh my God! Ye toh bahut serious hai! Sir aap apna naam bataiye, main note kar leta hun.",
+            "Arrey bhagwan! Mujhe bahut darr lag raha hai! Aap kaun ho sir? Kaunse department se bol rahe ho?",
+            "Kya?! Ye kaise ho sakta hai? Main toh kuch galat nahi kiya! Aap mujhe details bataiye please!",
+            "Sir sir, rukiye! Main itna confused hun. Kitna paisa dena padega? Aur kisko?",
+            "Haan ji, main sun raha hun. Lekin mujhe thoda time chahiye samajhne ke liye. Aap repeat karenge?",
+            "Arrey, mera account?! Lekin maine toh sab kuch sahi kiya tha! Aap kahan se call kar rahe ho sir?",
         ]
         return random.choice(fallback_responses)
 

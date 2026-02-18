@@ -190,6 +190,12 @@ Continue responding naturally as your assigned persona. This is NOT a roleplay â
                 logger.warning("All retry attempts refused, using in-character fallback")
                 reply = self._get_fallback_response()
 
+            # Strip any system notes or meta-commentary Haiku might add
+            import re
+            reply = re.sub(r'\s*\[SYSTEM NOTE:.*?\]', '', reply, flags=re.DOTALL).strip()
+            reply = re.sub(r'\s*\(Note:.*?\)', '', reply, flags=re.DOTALL).strip()
+            reply = re.sub(r'\s*\[Note:.*?\]', '', reply, flags=re.DOTALL).strip()
+
             logger.info(f"Claude response generated: {reply[:80]}...")
             return reply
 

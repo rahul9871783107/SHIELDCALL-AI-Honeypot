@@ -76,11 +76,19 @@ SCAM_KEYWORDS = {
 # Regex patterns for intelligence extraction
 INTELLIGENCE_PATTERNS = {
     "upi_id": r"[\w.-]+@[a-zA-Z][\w.-]*",
-    "phone_number": r"(?:\+91[\s\-]*)?\b[6-9]\d{2,3}[\s\-]?\d{2,3}[\s\-]?\d{4,5}\b",
+    # Phone: handles +91-XXXX, +91.XXXX, (91) XXXXX, spaces/dashes/dots between digits
+    "phone_number": r"(?:(?:\+91|91|\(91\))[\s.\-]*)?\b[6-9]\d{2,3}[\s.\-]?\d{2,3}[\s.\-]?\d{4,5}\b",
+    # Bank: plain 9-18 digit numbers (primary)
     "bank_account": r"\b\d{9,18}\b",
+    # Bank: numbers with dashes/spaces like 1234-5678-9012-3456
+    "bank_account_formatted": r"\b\d{4}[\s\-]\d{4}[\s\-]\d{4}(?:[\s\-]\d{4})?\b",
+    # Bank: prefixed like "a/c no: 50100123456789" or "account: 1234567890"
+    "bank_account_prefixed": r"(?:a/c\s*(?:no\.?|number)?|account\s*(?:no\.?|number)?)\s*:?\s*(\d{9,18})",
     "url": r"https?://[^\s]+",
     "url_www": r"\bwww\.[^\s]+",
     "email": r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}",
+    # IFSC code pattern (to exclude from bank accounts)
+    "ifsc": r"\b[A-Z]{4}0[A-Z0-9]{6}\b",
 }
 
 # AI Agent Personas

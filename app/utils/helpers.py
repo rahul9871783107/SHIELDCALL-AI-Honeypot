@@ -44,31 +44,76 @@ def extract_phone_numbers(text: str) -> List[str]:
     """Extract phone numbers from text."""
     pattern = INTELLIGENCE_PATTERNS["phone_number"]
     numbers = extract_patterns(text, pattern)
-    # Normalize: strip internal spaces/dashes for clean output
+    # Normalize: strip all non-digits except leading +
     normalized = []
     for num in numbers:
-        clean = re.sub(r'[\s\-]', '', num)
-        if clean not in normalized:
+        clean = re.sub(r'[\s.\-\(\)]', '', num)
+        # Strip leading country code variants to get 10-digit number
+        if clean.startswith('+91'):
+            clean = clean[3:]
+        elif clean.startswith('91') and len(clean) == 12:
+            clean = clean[2:]
+        if len(clean) == 10 and clean not in normalized:
             normalized.append(clean)
     return normalized
 
 
 def extract_bank_accounts(text: str) -> List[str]:
     """Extract potential bank account numbers from text."""
-    pattern = INTELLIGENCE_PATTERNS["bank_account"]
-    accounts = extract_patterns(text, pattern)
-    # Get phone digits to filter false positives (e.g. 9876543210 from +91-9876543210)
-    phone_pattern = INTELLIGENCE_PATTERNS["phone_number"]
-    phone_matches = re.findall(phone_pattern, text, re.IGNORECASE)
-    phone_digit_strings = []
-    for p in phone_matches:
+    accounts = set()
+
+    # 1. Plain 9-18 digit numbers
+    plain_pattern = INTELLIGENCE_PATTERNS["bank_account"]
+    plain_matches = extract_patterns(text, plain_pattern)
+    accounts.update(plain_matches)
+
+    # 2. Formatted: 1234-5678-9012-3456 or 1234 5678 9012 3456
+    fmt_pattern = INTELLIGENCE_PATTERNS["bank_account_formatted"]
+    fmt_matches = re.findall(fmt_pattern, text, re.IGNORECASE)
+    for m in fmt_matches:
+        digits = re.sub(r'[^\d]', '', m)
+        accounts.add(digits)
+
+    # 3. Prefixed: "a/c no: 50100123456789" or "account: 1234567890"
+    pfx_pattern = INTELLIGENCE_PATTERNS["bank_account_prefixed"]
+    pfx_matches = re.findall(pfx_pattern, text, re.IGNORECASE)
+    accounts.update(pfx_matches)
+
+    # Get phone digits to filter false positives
+    phone_numbers = extract_phone_numbers(text)
+    phone_digit_set = set(phone_numbers)
+    # Also get raw phone digits with country code
+    raw_phone_pattern = INTELLIGENCE_PATTERNS["phone_number"]
+    raw_phones = re.findall(raw_phone_pattern, text, re.IGNORECASE)
+    for p in raw_phones:
         if isinstance(p, tuple):
             p = ''.join(p)
-        phone_digit_strings.append(re.sub(r'[^\d]', '', p))
-    # Filter: 9-18 digits AND not a substring of any phone number's digits
-    def is_phone_fragment(acc):
-        return any(acc in pd for pd in phone_digit_strings)
-    return [acc for acc in accounts if 9 <= len(acc) <= 18 and not is_phone_fragment(acc)]
+        phone_digit_set.add(re.sub(r'[^\d]', '', p))
+
+    # Get IFSC codes to exclude
+    ifsc_pattern = INTELLIGENCE_PATTERNS["ifsc"]
+    ifsc_matches = re.findall(ifsc_pattern, text)
+
+    def should_exclude(acc):
+        # Must be 9-18 digits
+        if not (9 <= len(acc) <= 18):
+            return True
+        # Exclude phone numbers and their fragments
+        if acc in phone_digit_set:
+            return True
+        if any(acc in pd or pd in acc for pd in phone_digit_set):
+            return True
+        # Exclude epoch timestamps (13 digits starting with 17)
+        if len(acc) == 13 and acc.startswith('17'):
+            return True
+        # Exclude IFSC-adjacent numbers (the digits in IFSC codes)
+        for ifsc in ifsc_matches:
+            digits = re.sub(r'[^\d]', '', ifsc)
+            if digits and acc == digits:
+                return True
+        return False
+
+    return [acc for acc in accounts if not should_exclude(acc)]
 
 
 def extract_urls(text: str) -> List[str]:

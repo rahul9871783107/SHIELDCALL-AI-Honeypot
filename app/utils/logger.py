@@ -20,9 +20,11 @@ def setup_logger():
         "<level>{message}</level>"
     )
 
-    # Console logging (always enabled)
+    # Console logging (always enabled) — UTF-8 to handle ₹ and other Unicode
+    import io
+    utf8_stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
     logger.add(
-        sys.stdout,
+        utf8_stdout,
         format=log_format,
         level=settings.log_level,
         colorize=True,

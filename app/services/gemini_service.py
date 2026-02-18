@@ -1,26 +1,47 @@
 """
-Gemini Service - Layer 2: Quick Risk Screening
-Uses Google Gemini Flash for ultra-fast scam detection (<200ms).
-Cost: ~$0.00001 per request (extremely cheap!)
+Gemini Service - Primary Engagement + Risk Screening
+Uses Google Gemini 2.0 Flash for ultra-fast persona engagement.
 """
-from typing import Dict, Literal
+from typing import Dict, List, Literal
 import google.generativeai as genai
 from app.config import settings
 from app.utils.logger import app_logger as logger
 import json
+import re
 
 RiskLevel = Literal["low", "medium", "high"]
+
+# Max messages from history to send to Gemini
+MAX_HISTORY_MESSAGES = 6
+
+# Refusal phrases to detect broken character
+REFUSAL_PHRASES = [
+    "i can't roleplay", "i cannot roleplay",
+    "can't participate", "cannot participate",
+    "i'm an ai", "i am an ai", "as an ai",
+    "i'm a language model", "i am a language model",
+    "appears to be a scam", "this is a scam",
+    "i need to warn you", "i must warn you",
+    "not comfortable", "i cannot assist",
+    "i can't assist", "i will not",
+    "i cannot engage", "i can't engage",
+    "potential scam", "scam attempt",
+    "i recommend contacting", "contact the authorities",
+    "i do not engage", "i do not feel",
+    "i do not actually", "i cannot and will not",
+    "please be cautious", "be careful with",
+    "this looks like a fraud", "fraudulent activity",
+]
 
 
 class GeminiService:
     """
-    Layer 2: Gemini Flash for quick risk screening.
+    Gemini Flash for primary persona engagement + risk screening.
 
     Features:
-    - Ultra-fast initial risk check (<200ms)
-    - Pattern matching against known scams
-    - Returns: risk_level (low/medium/high)
-    - Cost: Very cheap (~$0.00001 per request)
+    - Ultra-fast persona engagement (<2s)
+    - Fallback risk screening
+    - No refusals on scam roleplay
     """
 
     def __init__(self):
@@ -28,9 +49,9 @@ class GeminiService:
         if settings.google_api_key and settings.google_api_key != "your-google-key-here":
             try:
                 genai.configure(api_key=settings.google_api_key)
-                self.model = genai.GenerativeModel(settings.gemini_model)
+                self.model = genai.GenerativeModel("gemini-2.0-flash")
                 self.enabled = True
-                logger.info(f"GeminiService initialized with model: {settings.gemini_model}")
+                logger.info("GeminiService initialized with model: gemini-2.0-flash")
             except Exception as e:
                 logger.warning(f"Gemini initialization failed: {str(e)}")
                 self.model = None
@@ -38,7 +59,136 @@ class GeminiService:
         else:
             self.model = None
             self.enabled = False
-            logger.warning("Google API key not set. Gemini service disabled (using fallback).")
+            logger.warning("Google API key not set. Gemini service disabled.")
+
+    def generate_persona_response(
+        self,
+        current_message: str,
+        conversation_history: List = None,
+        persona_prompt: str = "",
+    ) -> str:
+        """
+        Generate an in-character persona response using Gemini 2.0 Flash.
+
+        Args:
+            current_message: The scammer's latest message
+            conversation_history: Previous messages in the conversation
+            persona_prompt: Full system prompt with persona instructions
+
+        Returns:
+            In-character response string, or None if Gemini fails/refuses
+        """
+        if not self.enabled:
+            logger.warning("Gemini not enabled, skipping persona engagement")
+            return None
+
+        try:
+            # Build conversation contents for Gemini
+            contents = self._build_engagement_contents(
+                current_message, conversation_history, persona_prompt
+            )
+
+            response = self.model.generate_content(
+                contents=contents,
+                generation_config=genai.types.GenerationConfig(
+                    max_output_tokens=200,
+                    temperature=0.7,
+                ),
+            )
+
+            reply = response.text.strip()
+
+            # Check for refusal
+            reply_lower = reply.lower()
+            if any(phrase in reply_lower for phrase in REFUSAL_PHRASES):
+                logger.warning(f"Gemini refusal detected: {reply[:80]}...")
+                return None
+
+            # Strip any meta-commentary
+            reply = re.sub(r'\s*\[.*?(?:NOTE|note|Note).*?\]', '', reply, flags=re.DOTALL).strip()
+            reply = re.sub(r'\s*\((?:Note|NOTE|As an AI|Disclaimer).*?\)', '', reply, flags=re.DOTALL).strip()
+
+            if not reply or len(reply) < 10:
+                logger.warning("Gemini response too short or empty")
+                return None
+
+            logger.info(f"Gemini persona response: {reply[:80]}...")
+            return reply
+
+        except Exception as e:
+            logger.error(f"Gemini engagement error: {str(e)}")
+            return None
+
+    def _build_engagement_contents(
+        self,
+        current_message: str,
+        conversation_history: List = None,
+        persona_prompt: str = "",
+    ) -> list:
+        """Build Gemini conversation contents with persona + history."""
+        contents = []
+
+        # First message: persona prompt + first scammer message
+        # Gemini doesn't have a separate system prompt, so we prepend it
+        history_messages = []
+        if conversation_history:
+            recent = conversation_history
+            if len(conversation_history) > MAX_HISTORY_MESSAGES:
+                recent = conversation_history[-MAX_HISTORY_MESSAGES:]
+
+            for msg in recent:
+                if isinstance(msg, dict):
+                    sender = msg.get("sender", "scammer")
+                    text = msg.get("text", msg.get("content", ""))
+                else:
+                    sender = getattr(msg, "sender", "scammer")
+                    text = getattr(msg, "text", "")
+                if text:
+                    role = "model" if sender == "user" else "user"
+                    history_messages.append({"role": role, "parts": [text]})
+
+        # Build contents: system prompt as first user message, then history, then current
+        if history_messages:
+            # Prepend persona to first user message in history
+            first_msg = history_messages[0]
+            if first_msg["role"] == "user":
+                first_msg["parts"] = [persona_prompt + "\n\nSCAMMER MESSAGE:\n" + first_msg["parts"][0]]
+                contents = history_messages
+            else:
+                # History starts with model — prepend a user message with prompt
+                contents = [{"role": "user", "parts": [persona_prompt + "\n\nRespond in character."]}]
+                contents.extend(history_messages)
+            # Add current message
+            contents.append({"role": "user", "parts": [current_message]})
+        else:
+            # No history — single turn with persona + current message
+            contents = [
+                {
+                    "role": "user",
+                    "parts": [persona_prompt + "\n\nSCAMMER MESSAGE:\n" + current_message],
+                }
+            ]
+
+        # Ensure alternating roles (Gemini requirement)
+        contents = self._fix_alternating_roles(contents)
+
+        return contents
+
+    def _fix_alternating_roles(self, contents: list) -> list:
+        """Ensure Gemini gets alternating user/model roles."""
+        if not contents:
+            return contents
+        fixed = [contents[0]]
+        for msg in contents[1:]:
+            if msg["role"] == fixed[-1]["role"]:
+                # Merge with previous message of same role
+                fixed[-1]["parts"].extend(msg["parts"])
+            else:
+                fixed.append(msg)
+        # Must start with 'user'
+        if fixed and fixed[0]["role"] != "user":
+            fixed = fixed[1:]
+        return fixed
 
     async def quick_screen(self, text: str, context: str = None) -> Dict[str, any]:
         """

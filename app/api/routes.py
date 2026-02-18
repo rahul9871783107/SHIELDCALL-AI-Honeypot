@@ -335,10 +335,30 @@ async def honeypot_endpoint(
         if not session.scam_detected:
             session_manager.mark_scam_detected(session_id, confidence, "Direct high-risk classification for speed")
 
-        # Always engage Claude directly
+        # Initialize persona
         if session.persona_key is None:
             session.persona_key = ai_agent.initialize_conversation()
-        reply = ai_agent.generate_response(scam_text, conversation_history, intelligence_summary)
+
+        # Build persona prompt (shared by both Gemini and Claude)
+        from app.core.persona_generator import get_persona_generator
+        persona_gen = get_persona_generator()
+        persona_prompt = persona_gen.build_system_prompt(
+            session.persona_key, intelligence_summary
+        )
+
+        # PRIMARY: Try Gemini 2.0 Flash (fastest, no refusals)
+        reply = None
+        engagement_model = "gemini-2.0-flash"
+        if gemini_service.is_enabled():
+            reply = gemini_service.generate_persona_response(
+                scam_text, conversation_history, persona_prompt
+            )
+
+        # FALLBACK: Claude Haiku if Gemini fails/refuses
+        if reply is None:
+            engagement_model = "claude-haiku-fallback"
+            logger.info("Gemini failed/refused, falling back to Claude Haiku")
+            reply = ai_agent.generate_response(scam_text, conversation_history, intelligence_summary)
 
         # Callback check
         if session_manager.should_send_callback(session_id):
@@ -369,7 +389,7 @@ async def honeypot_endpoint(
         agent_notes = (
             f"Scam detected with {session.scam_confidence:.0%} confidence. "
             f"Risk level: {session.risk_level.upper()}. "
-            f"Direct high-risk classification applied. "
+            f"Model: {engagement_model}. "
         )
         if session.persona_key:
             agent_notes += f"Engaged using '{session.persona_key}' persona. "

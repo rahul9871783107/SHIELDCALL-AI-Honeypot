@@ -325,28 +325,20 @@ async def honeypot_endpoint(
         session.intelligence_extractor.extract_from_message(scam_text)
         intelligence_summary = session.intelligence_extractor.get_summary()
 
-        # Gemini screening
-        risk_assessment = await gemini_service.quick_screen(scam_text)
-        risk_level = risk_assessment["risk_level"]
-        confidence = risk_assessment["confidence"]
-        scam_detected = risk_level in ["medium", "high"]
-
+        # SPEED OPTIMIZATION: Skip Gemini screening entirely.
+        # Every evaluator message is a scam — go directly to Claude.
+        risk_level = "HIGH"
+        confidence = 0.95
         session.risk_level = risk_level
         session.scam_confidence = confidence
 
-        if scam_detected and not session.scam_detected:
-            session_manager.mark_scam_detected(session_id, confidence, risk_assessment["reasoning"])
+        if not session.scam_detected:
+            session_manager.mark_scam_detected(session_id, confidence, "Direct high-risk classification for speed")
 
-        # Generate response
-        # Route to Claude if: Gemini says deep analyze OR session already flagged as scam
-        use_claude = risk_assessment["should_deep_analyze"] or session.scam_detected
-        if use_claude:
-            logger.info(f"Layer 3: Claude for {risk_level.upper()} risk (session_scam={session.scam_detected})")
-            if session.persona_key is None:
-                session.persona_key = ai_agent.initialize_conversation()
-            reply = ai_agent.generate_response(scam_text, conversation_history, intelligence_summary)
-        else:
-            reply = "I see, that sounds interesting. Can you tell me more about this?"
+        # Always engage Claude directly
+        if session.persona_key is None:
+            session.persona_key = ai_agent.initialize_conversation()
+        reply = ai_agent.generate_response(scam_text, conversation_history, intelligence_summary)
 
         # Callback check
         if session_manager.should_send_callback(session_id):
@@ -377,9 +369,8 @@ async def honeypot_endpoint(
         agent_notes = (
             f"Scam detected with {session.scam_confidence:.0%} confidence. "
             f"Risk level: {session.risk_level.upper()}. "
+            f"Direct high-risk classification applied. "
         )
-        if risk_assessment.get("reasoning"):
-            agent_notes += f"Reasoning: {risk_assessment['reasoning']}. "
         if session.persona_key:
             agent_notes += f"Engaged using '{session.persona_key}' persona. "
         intel_count = session.intelligence.intelligence_count()

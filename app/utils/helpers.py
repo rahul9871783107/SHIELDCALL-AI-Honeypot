@@ -30,11 +30,12 @@ def extract_upi_ids(text: str) -> List[str]:
     """Extract UPI IDs from text."""
     pattern = INTELLIGENCE_PATTERNS["upi_id"]
     upi_ids = extract_patterns(text, pattern)
-    # Clean and filter
+    # Email-like domains to exclude (these are emails, not UPI IDs)
+    email_tlds = ('.com', '.org', '.net', '.co.in', '.edu', '.gov', '.in', '.io')
     cleaned = []
     for upi in upi_ids:
         upi = upi.rstrip('.')  # Strip trailing periods from sentence endings
-        if '@' in upi and not upi.endswith('.com') and upi not in cleaned:
+        if '@' in upi and not any(upi.endswith(tld) for tld in email_tlds) and upi not in cleaned:
             cleaned.append(upi)
     return cleaned
 
@@ -71,11 +72,15 @@ def extract_bank_accounts(text: str) -> List[str]:
 
 
 def extract_urls(text: str) -> List[str]:
-    """Extract URLs from text."""
+    """Extract URLs (http/https and www.) from text."""
     pattern = INTELLIGENCE_PATTERNS["url"]
     urls = extract_patterns(text, pattern)
+    # Also extract www. URLs without http prefix
+    www_pattern = INTELLIGENCE_PATTERNS["url_www"]
+    www_urls = extract_patterns(text, www_pattern)
+    all_urls = list(set(urls + www_urls))
     # Strip trailing punctuation that gets caught by regex
-    return [url.rstrip('.,;:!?)') for url in urls]
+    return [url.rstrip('.,;:!?)') for url in all_urls]
 
 
 def extract_emails(text: str) -> List[str]:

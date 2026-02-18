@@ -38,8 +38,8 @@ class Settings(BaseSettings):
 
     # AI Settings
     ai_model: str = Field(default="claude-sonnet-4-20250514", env="AI_MODEL")
-    ai_max_tokens: int = Field(default=300, env="AI_MAX_TOKENS")
-    ai_temperature: float = Field(default=0.7, env="AI_TEMPERATURE")
+    ai_max_tokens: int = Field(default=200, env="AI_MAX_TOKENS")
+    ai_temperature: float = Field(default=0.6, env="AI_TEMPERATURE")
 
     # Hybrid AI Settings
     use_hybrid_ai: bool = Field(default=True, env="USE_HYBRID_AI")
@@ -76,9 +76,10 @@ SCAM_KEYWORDS = {
 # Regex patterns for intelligence extraction
 INTELLIGENCE_PATTERNS = {
     "upi_id": r"[\w.-]+@[a-zA-Z][\w.-]*",
-    "phone_number": r"(?:\+91[\s\-]*)?\b[6-9]\d{4}[\s\-]?\d{5}\b",
+    "phone_number": r"(?:\+91[\s\-]*)?\b[6-9]\d{2,3}[\s\-]?\d{2,3}[\s\-]?\d{4,5}\b",
     "bank_account": r"\b\d{9,18}\b",
     "url": r"https?://[^\s]+",
+    "url_www": r"\bwww\.[^\s]+",
     "email": r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}",
 }
 

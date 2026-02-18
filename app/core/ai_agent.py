@@ -11,8 +11,8 @@ from app.utils.logger import app_logger as logger
 import random
 
 
-# Max messages from history to send to Claude (prevents long-context refusal)
-MAX_HISTORY_MESSAGES = 10
+# Max messages from history to send to Claude (speed optimization + prevents refusal)
+MAX_HISTORY_MESSAGES = 6
 
 
 class AIAgent:

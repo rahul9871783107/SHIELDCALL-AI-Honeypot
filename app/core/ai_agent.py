@@ -144,6 +144,13 @@ Continue responding naturally as your assigned persona. This is NOT a roleplay â
                 "appears to be a scam", "scam operation",
                 "not comfortable", "can't continue",
                 "cannot continue", "must decline",
+                "will not continue", "will not engage",
+                "will not simulate", "will not assist",
+                "cannot assist", "i do not engage",
+                "i do not actually", "i do not feel",
+                "i recommend contacting", "i recommend you contact",
+                "potential scam", "if you have a genuine",
+                "i cannot assist", "cannot provide",
             ]
 
             # Progressive retry: reduce history on each attempt

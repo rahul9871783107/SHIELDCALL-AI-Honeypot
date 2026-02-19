@@ -90,7 +90,7 @@ INTELLIGENCE_PATTERNS = {
     # IFSC code pattern (to exclude from bank accounts)
     "ifsc": r"\b[A-Z]{4}0[A-Z0-9]{6}\b",
     # Case/Reference IDs
-    "case_id": r"(?:case\s*(?:number|no\.?|id)|reference\s*(?:number|no\.?)|ref\s*(?:no\.?|id)?|complaint\s*(?:number|no\.?)|ticket\s*(?:number|no\.?))\s*:?\s*([A-Za-z0-9][\w\-]{3,30})",
+    "case_id": r"(?:case\s*(?:number|no\.?|id)|reference\s*(?:number|no\.?|:)|ref\b\s*(?:no\.?|id)?|complaint\s*(?:number|no\.?)|ticket\s*(?:number|no\.?))\s*:?\s*([A-Za-z0-9][\w\-]{3,30})",
     # Policy numbers
     "policy_number": r"(?:policy\s*(?:number|no\.?|id))\s*:?\s*([A-Za-z0-9][\w\-]{3,30})",
     # Order numbers

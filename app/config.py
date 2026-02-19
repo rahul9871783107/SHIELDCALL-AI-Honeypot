@@ -76,8 +76,8 @@ SCAM_KEYWORDS = {
 # Regex patterns for intelligence extraction
 INTELLIGENCE_PATTERNS = {
     "upi_id": r"[\w.-]+@[a-zA-Z][\w.-]*",
-    # Phone: handles +91-XXXX, +91.XXXX, (91) XXXXX, spaces/dashes/dots between digits
-    "phone_number": r"(?:(?:\+91|91|\(91\))[\s.\-]*)?\b[6-9]\d{2,3}[\s.\-]?\d{2,3}[\s.\-]?\d{4,5}\b",
+    # Phone: handles +91, 91, (91), leading 0, any digit grouping with spaces/dots/dashes
+    "phone_number": r"(?<!\d)(?:(?:\+91|91|\(91\)|0)[\s.\-]*)?[6-9](?:[\s.\-]?\d){9}(?!\d)",
     # Bank: plain 9-18 digit numbers (primary)
     "bank_account": r"\b\d{9,18}\b",
     # Bank: numbers with dashes/spaces like 1234-5678-9012-3456

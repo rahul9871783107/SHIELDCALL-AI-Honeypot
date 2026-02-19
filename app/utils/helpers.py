@@ -48,11 +48,13 @@ def extract_phone_numbers(text: str) -> List[str]:
     normalized = []
     for num in numbers:
         clean = re.sub(r'[\s.\-\(\)]', '', num)
-        # Strip leading country code variants to get 10-digit number
+        # Strip leading country code / STD prefix to get 10-digit number
         if clean.startswith('+91'):
             clean = clean[3:]
         elif clean.startswith('91') and len(clean) == 12:
             clean = clean[2:]
+        elif clean.startswith('0') and len(clean) == 11:
+            clean = clean[1:]
         if len(clean) == 10 and clean not in normalized:
             normalized.append(clean)
     return normalized

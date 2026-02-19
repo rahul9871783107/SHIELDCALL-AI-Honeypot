@@ -406,6 +406,7 @@ async def honeypot_endpoint(
             "scamDetected": session.scam_detected,
             "scam_detected": session.scam_detected,
             "confidence": session.scam_confidence,
+            "totalMessagesExchanged": total_messages,
             "extractedIntelligence": {
                 "phoneNumbers": [p for p in intel.phoneNumbers if p],
                 "bankAccounts": list(intel.bankAccounts),
@@ -419,14 +420,6 @@ async def honeypot_endpoint(
                 "engagementDurationSeconds": engagement_duration,
             },
             "agentNotes": agent_notes,
-            "intelligence": {
-                "upiIds": list(intel.upiIds),
-                "phoneNumbers": [p for p in intel.phoneNumbers if p],
-                "bankAccounts": list(intel.bankAccounts),
-                "phishingLinks": list(intel.phishingLinks),
-                "emailAddresses": list(intel.emailAddresses),
-                "suspiciousKeywords": list(intel.suspiciousKeywords)[:10],
-            },
         }
 
     except Exception as e:

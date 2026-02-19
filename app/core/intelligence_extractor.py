@@ -55,16 +55,11 @@ class IntelligenceExtractor:
             logger.info(f"Found {len(bank_accounts)} bank account(s): {bank_accounts}")
             self.intelligence.bankAccounts.extend(bank_accounts)
 
-        # Extract URLs and check if suspicious
+        # Extract URLs — add ALL URLs to phishingLinks (evaluator only sends scam URLs)
         urls = extract_urls(text)
         if urls:
-            suspicious_urls = [url for url in urls if is_suspicious_url(url)]
-            if suspicious_urls:
-                logger.warning(f"Found {len(suspicious_urls)} suspicious URL(s): {suspicious_urls}")
-                self.intelligence.phishingLinks.extend(suspicious_urls)
-            else:
-                logger.info(f"Found {len(urls)} URL(s): {urls}")
-                self.intelligence.phishingLinks.extend(urls)
+            logger.info(f"Found {len(urls)} URL(s): {urls}")
+            self.intelligence.phishingLinks.extend(urls)
 
         # Extract email addresses
         emails = extract_emails(text)

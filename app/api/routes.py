@@ -381,6 +381,14 @@ async def honeypot_endpoint(
                             timestamps.append(ts / 1000)  # epoch ms -> s
                         elif isinstance(ts, (int, float)):
                             timestamps.append(float(ts))
+                        elif isinstance(ts, str):
+                            # Handle ISO-8601 strings like "2025-02-11T10:30:00Z"
+                            from datetime import datetime as dt
+                            try:
+                                parsed = dt.fromisoformat(ts.replace("Z", "+00:00"))
+                                timestamps.append(parsed.timestamp())
+                            except (ValueError, AttributeError):
+                                pass
                 if timestamps:
                     engagement_duration = int(max(timestamps) - min(timestamps))
             except Exception:
@@ -417,6 +425,7 @@ async def honeypot_endpoint(
         intel = session.intelligence
         return {
             "status": "success",
+            "sessionId": session_id,
             "reply": reply,
             "scamDetected": session.scam_detected,
             "scam_detected": session.scam_detected,

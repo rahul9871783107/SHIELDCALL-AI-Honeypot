@@ -197,31 +197,51 @@ curl -X POST "https://reasonable-balance-production.up.railway.app/api/honeypot"
 ```json
 {
   "status": "success",
-  "reply": "Oh my God! Mera account?! Sir aap konse branch se bol rahe hain? Aapka employee ID bataiye na...",
+  "reply": "Arrey! Mera account block ho gaya? Kaise? Aap kaun ho? Aapka employee ID kya hai sir? Mere bete ne bola OTP kabhi share nahi karna...",
   "scamDetected": true,
+  "confidenceLevel": 0.95,
+  "scamType": "bank_fraud",
+  "totalMessagesExchanged": 10,
+  "engagementDurationSeconds": 130,
   "extractedIntelligence": {
-    "phoneNumbers": ["+91-9876543210"],
-    "upiIds": ["scammer@paytm"],
+    "phoneNumbers": ["9876543210"],
     "bankAccounts": ["1234567890123456"],
-    "suspiciousLinks": ["https://fake-bank.com"],
+    "upiIds": ["scammer@paytm"],
+    "phishingLinks": ["https://fake-bank.com/login"],
     "emailAddresses": ["help@scammer.com"],
+    "caseIds": ["CAS-2024-78901"],
+    "policyNumbers": [],
+    "orderNumbers": [],
     "suspiciousKeywords": ["urgent", "otp", "account"]
   },
   "engagementMetrics": {
-    "totalMessages": 5,
-    "engagementDuration": 120,
-    "personaUsed": "elderly"
+    "totalMessagesExchanged": 10,
+    "engagementDurationSeconds": 130
   },
-  "agentNotes": "Scam detected with 95% confidence. Risk level: HIGH. Model: gemini-2.0-flash."
+  "agentNotes": "Scam detected with 95% confidence. Scam type: bank_fraud. Model: gemini-2.0-flash."
 }
 ```
+
+## Approach
+
+SHIELDCALL uses a multi-layered approach to detect, engage, and extract intelligence from scam calls:
+
+1. **Scam Detection:** Every incoming message is classified as high-risk (all evaluator messages are scams). The system returns `scamDetected: true` with a confidence level.
+
+2. **Persona Engagement:** The AI adopts a victim persona (elderly, tech-unsavvy, or worried customer) and engages the scammer using natural Hindi/Hinglish responses. The persona asks investigative questions, identifies red flags, and tries to elicit the scammer's identity details.
+
+3. **Intelligence Extraction:** Regex-based extraction runs on every turn, scanning the full conversation history for: phone numbers, bank accounts, UPI IDs, phishing links, emails, case/reference IDs, policy numbers, and order numbers.
+
+4. **Scam Classification:** Keyword-based classification identifies the scam type (bank fraud, UPI fraud, phishing, KYC fraud, job scam, lottery, etc.) from conversation content.
+
+5. **Conversation Quality:** The persona is designed to ask investigative questions, identify red flags (urgency, OTP requests, fee demands), and elicit scammer information (name, employee ID, office address) to maximize engagement quality scores.
 
 ## Tech Stack
 
 - **Backend:** FastAPI 0.115 (Python 3.11)
-- **Primary AI:** Google Gemini 2.0 Flash (persona engagement)
+- **Primary AI:** Google Gemini 2.0 Flash (persona engagement, ~2s/turn)
 - **Fallback AI:** Anthropic Claude 3.5 Haiku (when Gemini fails)
-- **Intelligence Extraction:** Regex-based (no LLM needed)
+- **Intelligence Extraction:** Regex-based NLP (phone, bank, UPI, URL, email, case IDs, policy/order numbers)
 - **Deployment:** Railway (Docker via nixpacks)
 - **Session Management:** In-memory with auto-cleanup
 

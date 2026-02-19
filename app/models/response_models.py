@@ -28,6 +28,9 @@ class ExtractedIntelligence(BaseModel):
     phoneNumbers: List[str] = Field(default_factory=list)
     emailAddresses: List[str] = Field(default_factory=list)
     suspiciousKeywords: List[str] = Field(default_factory=list)
+    caseIds: List[str] = Field(default_factory=list)
+    policyNumbers: List[str] = Field(default_factory=list)
+    orderNumbers: List[str] = Field(default_factory=list)
 
     def to_dict(self) -> Dict[str, List[str]]:
         """Convert to dictionary format for callback."""
@@ -38,6 +41,9 @@ class ExtractedIntelligence(BaseModel):
             "phoneNumbers": self.phoneNumbers,
             "emailAddresses": self.emailAddresses,
             "suspiciousKeywords": self.suspiciousKeywords,
+            "caseIds": self.caseIds,
+            "policyNumbers": self.policyNumbers,
+            "orderNumbers": self.orderNumbers,
         }
 
     def has_intelligence(self) -> bool:
@@ -47,7 +53,10 @@ class ExtractedIntelligence(BaseModel):
             self.upiIds or
             self.phishingLinks or
             self.phoneNumbers or
-            self.emailAddresses
+            self.emailAddresses or
+            self.caseIds or
+            self.policyNumbers or
+            self.orderNumbers
         )
 
     def intelligence_count(self) -> int:
@@ -57,7 +66,10 @@ class ExtractedIntelligence(BaseModel):
             len(self.upiIds) +
             len(self.phishingLinks) +
             len(self.phoneNumbers) +
-            len(self.emailAddresses)
+            len(self.emailAddresses) +
+            len(self.caseIds) +
+            len(self.policyNumbers) +
+            len(self.orderNumbers)
         )
 
 

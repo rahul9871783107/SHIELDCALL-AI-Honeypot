@@ -11,6 +11,7 @@ from app.core.ai_agent import get_ai_agent
 from app.services.session_manager import get_session_manager
 from app.services.callback_service import get_callback_service
 from app.utils.logger import app_logger as logger
+from app.config import SCAM_TYPE_KEYWORDS
 from typing import Dict, Any, Optional
 import time
 import random
@@ -385,10 +386,24 @@ async def honeypot_endpoint(
             except Exception:
                 engagement_duration = 0
 
+        # Classify scam type from conversation text
+        all_text = scam_text.lower()
+        for hist_msg in conversation_history:
+            if isinstance(hist_msg, dict) and hist_msg.get("sender", "scammer") != "user":
+                all_text += " " + hist_msg.get("text", "").lower()
+        scam_type = "unknown"
+        best_score = 0
+        for stype, keywords in SCAM_TYPE_KEYWORDS.items():
+            score = sum(1 for kw in keywords if kw in all_text)
+            if score > best_score:
+                best_score = score
+                scam_type = stype
+
         # Generate agent notes
         agent_notes = (
             f"Scam detected with {session.scam_confidence:.0%} confidence. "
             f"Risk level: {session.risk_level.upper()}. "
+            f"Scam type: {scam_type}. "
             f"Model: {engagement_model}. "
         )
         if session.persona_key:
@@ -406,13 +421,19 @@ async def honeypot_endpoint(
             "scamDetected": session.scam_detected,
             "scam_detected": session.scam_detected,
             "confidence": session.scam_confidence,
+            "confidenceLevel": session.scam_confidence,
+            "scamType": scam_type,
             "totalMessagesExchanged": total_messages,
+            "engagementDurationSeconds": engagement_duration,
             "extractedIntelligence": {
                 "phoneNumbers": [p for p in intel.phoneNumbers if p],
                 "bankAccounts": list(intel.bankAccounts),
                 "upiIds": list(intel.upiIds),
                 "phishingLinks": list(intel.phishingLinks),
                 "emailAddresses": list(intel.emailAddresses),
+                "caseIds": list(intel.caseIds),
+                "policyNumbers": list(intel.policyNumbers),
+                "orderNumbers": list(intel.orderNumbers),
                 "suspiciousKeywords": list(intel.suspiciousKeywords)[:10],
             },
             "engagementMetrics": {

@@ -89,6 +89,31 @@ INTELLIGENCE_PATTERNS = {
     "email": r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}",
     # IFSC code pattern (to exclude from bank accounts)
     "ifsc": r"\b[A-Z]{4}0[A-Z0-9]{6}\b",
+    # Case/Reference IDs
+    "case_id": r"(?:case\s*(?:number|no\.?|id)|reference\s*(?:number|no\.?)|ref\s*(?:no\.?|id)?|complaint\s*(?:number|no\.?)|ticket\s*(?:number|no\.?))\s*:?\s*([A-Za-z0-9][\w\-]{3,30})",
+    # Policy numbers
+    "policy_number": r"(?:policy\s*(?:number|no\.?|id))\s*:?\s*([A-Za-z0-9][\w\-]{3,30})",
+    # Order numbers
+    "order_number": r"(?:order\s*(?:number|no\.?|id|#))\s*:?\s*([A-Za-z0-9][\w\-]{3,30})",
+}
+
+# Scam type classification keywords
+SCAM_TYPE_KEYWORDS = {
+    "bank_fraud": ["bank", "account compromised", "sbi", "hdfc", "icici", "axis", "account block", "account frozen", "unauthorized transaction"],
+    "upi_fraud": ["upi", "cashback", "paytm", "gpay", "google pay", "phonepe", "bhim"],
+    "phishing": ["click", "link", "deal", "offer price", "flash sale", "iphone", "flipkart", "amazon offer"],
+    "kyc_fraud": ["kyc", "aadhaar", "pan card", "wallet block", "paytm kyc", "mobikwik"],
+    "job_scam": ["job", "work from home", "hiring", "vacancy", "salary", "recruitment", "registration fee"],
+    "lottery_scam": ["lottery", "lucky draw", "won", "prize", "winner", "jackpot", "lakh"],
+    "electricity_bill": ["electricity", "bill overdue", "disconnection", "bijli", "bses", "mseb", "power cut"],
+    "govt_scheme": ["government", "yojana", "subsidy", "pm kisan", "scheme", "eligible", "benefit"],
+    "crypto_investment": ["bitcoin", "crypto", "investment", "trading", "returns guaranteed", "forex"],
+    "customs_parcel": ["customs", "parcel", "duty", "courier", "package", "held at"],
+    "tech_support": ["microsoft", "virus", "malware", "tech support", "computer", "antivirus", "security patch"],
+    "loan_approval": ["loan", "pre-approved", "emi", "interest rate", "cibil", "personal loan", "credit"],
+    "income_tax": ["income tax", "tax refund", "itr", "tax department", "refund pending", "form 16"],
+    "refund_scam": ["refund", "failed transaction", "order cancel", "return", "cashback failed"],
+    "insurance": ["insurance", "lic", "policy maturity", "claim", "premium", "nomination", "endowment"],
 }
 
 # AI Agent Personas

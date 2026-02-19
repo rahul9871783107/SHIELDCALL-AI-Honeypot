@@ -10,6 +10,9 @@ from app.utils.helpers import (
     extract_bank_accounts,
     extract_urls,
     extract_emails,
+    extract_case_ids,
+    extract_policy_numbers,
+    extract_order_numbers,
     is_suspicious_url,
     get_detected_keywords
 )
@@ -67,6 +70,24 @@ class IntelligenceExtractor:
             logger.info(f"Found {len(emails)} email(s): {emails}")
             self.intelligence.emailAddresses.extend(emails)
 
+        # Extract case/reference IDs
+        case_ids = extract_case_ids(text)
+        if case_ids:
+            logger.info(f"Found {len(case_ids)} case/reference ID(s): {case_ids}")
+            self.intelligence.caseIds.extend(case_ids)
+
+        # Extract policy numbers
+        policy_numbers = extract_policy_numbers(text)
+        if policy_numbers:
+            logger.info(f"Found {len(policy_numbers)} policy number(s): {policy_numbers}")
+            self.intelligence.policyNumbers.extend(policy_numbers)
+
+        # Extract order numbers
+        order_numbers = extract_order_numbers(text)
+        if order_numbers:
+            logger.info(f"Found {len(order_numbers)} order number(s): {order_numbers}")
+            self.intelligence.orderNumbers.extend(order_numbers)
+
         # Extract scam keywords
         keywords = get_detected_keywords(text, SCAM_KEYWORDS)
         if keywords:
@@ -79,6 +100,9 @@ class IntelligenceExtractor:
         self.intelligence.bankAccounts = list(set(self.intelligence.bankAccounts))
         self.intelligence.phishingLinks = list(set(self.intelligence.phishingLinks))
         self.intelligence.emailAddresses = list(set(self.intelligence.emailAddresses))
+        self.intelligence.caseIds = list(set(self.intelligence.caseIds))
+        self.intelligence.policyNumbers = list(set(self.intelligence.policyNumbers))
+        self.intelligence.orderNumbers = list(set(self.intelligence.orderNumbers))
         self.intelligence.suspiciousKeywords = list(set(self.intelligence.suspiciousKeywords))
 
         return self.intelligence

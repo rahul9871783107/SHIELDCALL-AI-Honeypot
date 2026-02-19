@@ -136,6 +136,24 @@ def extract_emails(text: str) -> List[str]:
     return extract_patterns(text, pattern)
 
 
+def extract_case_ids(text: str) -> List[str]:
+    """Extract case/reference/complaint/ticket IDs from text."""
+    pattern = INTELLIGENCE_PATTERNS["case_id"]
+    return extract_patterns(text, pattern)
+
+
+def extract_policy_numbers(text: str) -> List[str]:
+    """Extract policy numbers from text."""
+    pattern = INTELLIGENCE_PATTERNS["policy_number"]
+    return extract_patterns(text, pattern)
+
+
+def extract_order_numbers(text: str) -> List[str]:
+    """Extract order numbers from text."""
+    pattern = INTELLIGENCE_PATTERNS["order_number"]
+    return extract_patterns(text, pattern)
+
+
 def is_suspicious_url(url: str) -> bool:
     """
     Check if a URL looks suspicious/phishing.
